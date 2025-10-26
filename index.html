@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="sq">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Sistem Menaxhimi — Hyrje</title>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --accent1: #12c2e9;
+      --accent2: #c471ed;
+      --accent3: #f64f59;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      font-family:'Poppins',sans-serif;
+      background:linear-gradient(90deg,#eef2f7,#f6f9fc);
+      display:flex;justify-content:center;align-items:center;height:100vh;
+    }
+    .modal{
+      width:700px;max-width:90%;
+      background:white;
+      border-radius:14px;
+      padding:30px;
+      display:flex;gap:25px;
+      align-items:center;
+      box-shadow:0 10px 40px rgba(0,0,0,0.1);
+    }
+    .left{
+      width:120px;height:120px;border-radius:12px;
+      background:linear-gradient(135deg,var(--accent1),var(--accent2));
+      display:flex;align-items:center;justify-content:center;
+      color:white;font-size:28px;font-weight:700;
+    }
+    .form{flex:1;}
+    input{width:100%;padding:12px;border-radius:10px;border:1px solid #ccc;margin-bottom:10px;font-size:14px;}
+    button{padding:10px 18px;border:none;border-radius:10px;font-weight:600;cursor:pointer;}
+    .btn-primary{background:linear-gradient(90deg,#00c0b5,#22d3ee);color:#042023;}
+    .btn-secondary{background:#f1f3f5;}
+    #message{margin-top:8px;font-size:13px;min-height:18px;}
+  </style>
+</head>
+<body>
+  <div class="modal">
+    <div class="left">SM</div>
+    <div class="form">
+      <h2>Krijo Llogari ose Kyçu</h2>
+      <input id="email" type="email" placeholder="Email">
+      <input id="password" type="password" placeholder="Fjalëkalimi">
+      <div style="display:flex;gap:10px;">
+        <button id="signupBtn" class="btn-primary">Krijo Llogari</button>
+        <button id="loginBtn" class="btn-secondary">Kyçu</button>
+      </div>
+      <p id="message"></p>
+    </div>
+  </div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
+    import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js";
+    import { getDatabase, ref, set } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-database.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyDzLA2BtSeRukeyHaE5Sb-VGK1aSywrBv4",
+      authDomain: "hwms-c37e9.firebaseapp.com",
+      projectId: "hwms-c37e9",
+      storageBucket: "hwms-c37e9.firebasestorage.app",
+      messagingSenderId: "723888101927",
+      appId: "1:723888101927:web:ab140d13119fde4f7acc02",
+      measurementId: "G-16ZKY1MHC3"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getDatabase(app, "https://hwms-c37e9-default-rtdb.europe-west1.firebasedatabase.app");
+
+    const email = document.getElementById("email");
+    const password = document.getElementById("password");
+    const message = document.getElementById("message");
+
+    document.getElementById("signupBtn").addEventListener("click", () => {
+      createUserWithEmailAndPassword(auth, email.value, password.value)
+        .then((cred) => {
+          set(ref(db, 'users/' + cred.user.uid), { email: cred.user.email });
+          message.style.color = "green";
+          message.textContent = "✅ Llogaria u krijua me sukses!";
+          setTimeout(() => window.location.href = "home.html", 800);
+        })
+        .catch(err => { message.style.color = "red"; message.textContent = err.message; });
+    });
+
+    document.getElementById("loginBtn").addEventListener("click", () => {
+      signInWithEmailAndPassword(auth, email.value, password.value)
+        .then(() => {
+          message.style.color = "green";
+          message.textContent = "✅ Kyçja u bë me sukses!";
+          setTimeout(() => window.location.href = "home.html", 800);
+        })
+        .catch(err => { message.style.color = "red"; message.textContent = err.message; });
+    });
+  </script>
+</body>
+</html>

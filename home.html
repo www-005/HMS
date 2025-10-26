@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="sq">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Sistem Menaxhimi — Home</title>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
+  <style>
+    body{margin:0;font-family:'Poppins',sans-serif;background:#f6f9fc;color:#0b1220;}
+    .container{display:grid;grid-template-columns:260px 1fr;gap:25px;max-width:1100px;margin:auto;padding:30px;}
+    .sidebar{background:white;border-radius:14px;padding:18px;box-shadow:0 6px 20px rgba(0,0,0,0.1);}
+    .nav button{width:100%;background:none;border:none;padding:12px;border-radius:10px;text-align:left;cursor:pointer;font-size:15px;}
+    .nav button.active{background:#007bff;color:white;font-weight:bold;}
+    .main{background:white;border-radius:14px;padding:20px;box-shadow:0 6px 20px rgba(0,0,0,0.1);}
+    input,textarea{width:100%;padding:10px;margin:6px 0;border-radius:8px;border:1px solid #ccc;}
+    .add-btn{background:#28a745;color:white;border:none;padding:10px 14px;border-radius:8px;cursor:pointer;}
+    .task{background:#f2f5f9;padding:10px;border-radius:10px;margin:8px 0;display:flex;justify-content:space-between;align-items:center;}
+    .task button{background:#dc3545;color:white;border:none;padding:6px 10px;border-radius:6px;cursor:pointer;}
+  </style>
+</head>
+<body>
+  <div class="container">
+    <aside class="sidebar">
+      <h2>Sistem Menaxhimi</h2>
+      <p id="userEmail" style="color:gray;font-size:13px;">Ngarkim...</p>
+      <div class="nav">
+        <button id="menu-detyrat" class="active" onclick="showPanel('detyrat')">Detyrat</button>
+        <button id="menu-provimet" onclick="showPanel('provimet')">Provimet</button>
+        <button id="menu-projektet" onclick="showPanel('projektet')">Projektet</button>
+      </div>
+      <button id="logoutBtn" style="margin-top:20px;padding:10px;border:none;background:#f1f3f5;border-radius:10px;width:100%;">Shkyçu</button>
+    </aside>
+
+    <main class="main">
+      <!-- Detyrat -->
+      <section id="detyrat" class="panel active">
+        <h3>📘 Detyrat e Shtëpisë</h3>
+        <input id="subjectHomework" placeholder="Emri i lëndës">
+        <textarea id="descHomework" placeholder="Përshkrimi"></textarea>
+        <input id="dateHomework" type="date">
+        <button class="add-btn" onclick="addTask('detyrat')">Shto Detyrë</button>
+        <div id="listHomework"></div>
+      </section>
+
+      <!-- Provimet -->
+      <section id="provimet" class="panel" style="display:none;">
+        <h3>🧪 Provimet</h3>
+        <input id="subjectExam" placeholder="Emri i lëndës">
+        <textarea id="descExam" placeholder="Përshkrimi"></textarea>
+        <input id="dateExam" type="date">
+        <button class="add-btn" onclick="addTask('provimet')">Shto Provim</button>
+        <div id="listExam"></div>
+      </section>
+
+      <!-- Projektet -->
+      <section id="projektet" class="panel" style="display:none;">
+        <h3>💡 Projektet</h3>
+        <input id="subjectProject" placeholder="Emri i projektit">
+        <textarea id="descProject" placeholder="Përshkrimi"></textarea>
+        <input id="dateProject" type="date">
+        <button class="add-btn" onclick="addTask('projektet')">Shto Projekt</button>
+        <div id="listProject"></div>
+      </section>
+    </main>
+  </div>
+  
+  <!-- Form fshehur për dërgim email -->
+<form id="emailForm" action="https://formspree.io/f/xanlnqzq" method="POST" style="display:none;">
+  <input type="email" name="email" id="emailToSend">
+  <input type="text" name="type" id="typeToSend">
+  <input type="text" name="subject" id="subjectToSend">
+  <input type="text" name="description" id="descToSend">
+  <input type="date" name="date" id="dateToSend">
+  <button type="submit" id="sendBtn">Send</button>
+</form>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
+    import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js";
+    import { getDatabase, ref, push, onValue, remove } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-database.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyDzLA2BtSeRukeyHaE5Sb-VGK1aSywrBv4",
+      authDomain: "hwms-c37e9.firebaseapp.com",
+      projectId: "hwms-c37e9",
+      storageBucket: "hwms-c37e9.firebasestorage.app",
+      messagingSenderId: "723888101927",
+      appId: "1:723888101927:web:ab140d13119fde4f7acc02",
+      measurementId: "G-16ZKY1MHC3"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app, "https://hwms-c37e9-default-rtdb.europe-west1.firebasedatabase.app");
+    const auth = getAuth(app);
+
+    let currentUser = null;
+
+    // kontrollo login
+    onAuthStateChanged(auth, (user) => {
+      if (!user) {
+        window.location.href = "index.html";
+      } else {
+        currentUser = user;
+        document.getElementById("userEmail").textContent = user.email;
+        loadTasks("detyrat", "listHomework");
+        loadTasks("provimet", "listExam");
+        loadTasks("projektet", "listProject");
+      }
+    });
+
+    // shfaq panelin e duhur
+    window.showPanel = function(id){
+      document.querySelectorAll(".panel").forEach(p=>p.style.display="none");
+      document.getElementById(id).style.display="block";
+      document.querySelectorAll(".nav button").forEach(b=>b.classList.remove("active"));
+      document.getElementById("menu-"+id).classList.add("active");
+    }
+
+    window.addTask = function(type){
+  if(!currentUser){ 
+    alert("Prit derisa të ngarkohet përdoruesi!");
+    return;
+  }
+
+  const map = {
+    detyrat: {s:"subjectHomework", d:"descHomework", da:"dateHomework", list:"listHomework"},
+    provimet: {s:"subjectExam", d:"descExam", da:"dateExam", list:"listExam"},
+    projektet: {s:"subjectProject", d:"descProject", da:"dateProject", list:"listProject"}
+  }[type];
+
+  const subject = document.getElementById(map.s).value.trim();
+  const desc = document.getElementById(map.d).value.trim();
+  const date = document.getElementById(map.da).value;
+
+  if(!subject || !desc || !date){
+    alert("Plotëso të gjitha fushat!");
+    return;
+  }
+
+  // Shto në Firebase
+  push(ref(db, `${type}/${currentUser.uid}`), {subject, desc, date})
+    .then(()=>{
+      // Pas shtimit, fshij fushat
+      document.getElementById(map.s).value = "";
+      document.getElementById(map.d).value = "";
+      document.getElementById(map.da).value = "";
+
+      // Dërgo email me Formspree
+      document.getElementById('emailToSend').value = currentUser.email; // email i përdoruesit
+      document.getElementById('typeToSend').value = type;                // Detyrë/Provim/Projekt
+      document.getElementById('subjectToSend').value = subject;          // Subjekti
+      document.getElementById('descToSend').value = desc;                // Përshkrimi
+      document.getElementById('dateToSend').value = date;                // Data
+
+      // Dërgo form-in fshehur
+      document.getElementById('sendBtn').click();
+    })
+    .catch(e => alert(e.message));
+}
+
+
+    // lexo realtime
+    function loadTasks(type,listId){
+      const div=document.getElementById(listId);
+      onValue(ref(db,`${type}/${currentUser.uid}`),snap=>{
+        div.innerHTML="";
+        snap.forEach(child=>{
+          const data=child.val();
+          const el=document.createElement("div");
+          el.className="task";
+          el.innerHTML=`<div><b>${data.subject}</b><br>${data.desc}<br><small>${data.date}</small></div><button onclick="deleteTask('${type}','${child.key}')">Perfundo</button>`;
+          div.appendChild(el);
+        });
+      });
+    }
+
+    // fshi
+    window.deleteTask=function(type,key){
+      remove(ref(db,`${type}/${currentUser.uid}/${key}`));
+    }
+
+    // logout
+    document.getElementById("logoutBtn").addEventListener("click",()=>{signOut(auth).then(()=>window.location.href="index.html")});
+  </script>
+</body>
+</html>

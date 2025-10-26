@@ -16,11 +16,60 @@
     .add-btn{background:#28a745;color:white;border:none;padding:10px 14px;border-radius:8px;cursor:pointer;}
     .task{background:#f2f5f9;padding:10px;border-radius:10px;margin:8px 0;display:flex;justify-content:space-between;align-items:center;}
     .task button{background:#dc3545;color:white;border:none;padding:6px 10px;border-radius:6px;cursor:pointer;}
+
+    /* ===================== BURGER MENU ===================== */
+    .hamburger {
+      display: none;
+      flex-direction: column;
+      cursor: pointer;
+      gap: 5px;
+      margin-bottom: 15px;
+    }
+    .hamburger div {
+      width: 25px;
+      height: 3px;
+      background-color: #0b1220;
+      border-radius: 2px;
+      transition: all 0.3s ease;
+    }
+    .hamburger.active div:nth-child(1) {
+      transform: rotate(45deg) translate(5px, 5px);
+    }
+    .hamburger.active div:nth-child(2) {
+      opacity: 0;
+    }
+    .hamburger.active div:nth-child(3) {
+      transform: rotate(-45deg) translate(5px, -5px);
+    }
+    @media (max-width: 768px) {
+      .container {
+        grid-template-columns: 1fr;
+      }
+      .sidebar {
+        position: absolute;
+        left: -300px;
+        top: 0;
+        height: 100%;
+        z-index: 100;
+        transition: left 0.3s ease;
+      }
+      .sidebar.active {
+        left: 0;
+      }
+      .hamburger {
+        display: flex;
+      }
+    }
   </style>
 </head>
 <body>
   <div class="container">
-    <aside class="sidebar">
+    <aside class="sidebar" id="sidebar">
+      <div class="hamburger" id="hamburger">
+        <div></div>
+        <div></div>
+        <div></div>
+      </div>
       <h2>Sistem Menaxhimi</h2>
       <p id="userEmail" style="color:gray;font-size:13px;">Ngarkim...</p>
       <div class="nav">
@@ -65,14 +114,14 @@
   </div>
   
   <!-- Form fshehur për dërgim email -->
-<form id="emailForm" action="https://formspree.io/f/xanlnqzq" method="POST" style="display:none;">
-  <input type="email" name="email" id="emailToSend">
-  <input type="text" name="type" id="typeToSend">
-  <input type="text" name="subject" id="subjectToSend">
-  <input type="text" name="description" id="descToSend">
-  <input type="date" name="date" id="dateToSend">
-  <button type="submit" id="sendBtn">Send</button>
-</form>
+  <form id="emailForm" action="https://formspree.io/f/xanlnqzq" method="POST" style="display:none;">
+    <input type="email" name="email" id="emailToSend">
+    <input type="text" name="type" id="typeToSend">
+    <input type="text" name="subject" id="subjectToSend">
+    <input type="text" name="description" id="descToSend">
+    <input type="date" name="date" id="dateToSend">
+    <button type="submit" id="sendBtn">Send</button>
+  </form>
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
@@ -117,49 +166,45 @@
     }
 
     window.addTask = function(type){
-  if(!currentUser){ 
-    alert("Prit derisa të ngarkohet përdoruesi!");
-    return;
-  }
+      if(!currentUser){ 
+        alert("Prit derisa të ngarkohet përdoruesi!");
+        return;
+      }
 
-  const map = {
-    detyrat: {s:"subjectHomework", d:"descHomework", da:"dateHomework", list:"listHomework"},
-    provimet: {s:"subjectExam", d:"descExam", da:"dateExam", list:"listExam"},
-    projektet: {s:"subjectProject", d:"descProject", da:"dateProject", list:"listProject"}
-  }[type];
+      const map = {
+        detyrat: {s:"subjectHomework", d:"descHomework", da:"dateHomework", list:"listHomework"},
+        provimet: {s:"subjectExam", d:"descExam", da:"dateExam", list:"listExam"},
+        projektet: {s:"subjectProject", d:"descProject", da:"dateProject", list:"listProject"}
+      }[type];
 
-  const subject = document.getElementById(map.s).value.trim();
-  const desc = document.getElementById(map.d).value.trim();
-  const date = document.getElementById(map.da).value;
+      const subject = document.getElementById(map.s).value.trim();
+      const desc = document.getElementById(map.d).value.trim();
+      const date = document.getElementById(map.da).value;
 
-  if(!subject || !desc || !date){
-    alert("Plotëso të gjitha fushat!");
-    return;
-  }
+      if(!subject || !desc || !date){
+        alert("Plotëso të gjitha fushat!");
+        return;
+      }
 
-  // Shto në Firebase
-  push(ref(db, `${type}/${currentUser.uid}`), {subject, desc, date})
-    .then(()=>{
-      // Pas shtimit, fshij fushat
-      document.getElementById(map.s).value = "";
-      document.getElementById(map.d).value = "";
-      document.getElementById(map.da).value = "";
+      // Shto në Firebase
+      push(ref(db, `${type}/${currentUser.uid}`), {subject, desc, date})
+        .then(()=>{
+          document.getElementById(map.s).value = "";
+          document.getElementById(map.d).value = "";
+          document.getElementById(map.da).value = "";
 
-      // Dërgo email me Formspree
-      document.getElementById('emailToSend').value = currentUser.email; // email i përdoruesit
-      document.getElementById('typeToSend').value = type;                // Detyrë/Provim/Projekt
-      document.getElementById('subjectToSend').value = subject;          // Subjekti
-      document.getElementById('descToSend').value = desc;                // Përshkrimi
-      document.getElementById('dateToSend').value = date;                // Data
+          // Dërgo email me Formspree
+          document.getElementById('emailToSend').value = currentUser.email;
+          document.getElementById('typeToSend').value = type;
+          document.getElementById('subjectToSend').value = subject;
+          document.getElementById('descToSend').value = desc;
+          document.getElementById('dateToSend').value = date;
 
-      // Dërgo form-in fshehur
-      document.getElementById('sendBtn').click();
-    })
-    .catch(e => alert(e.message));
-}
+          document.getElementById('sendBtn').click();
+        })
+        .catch(e => alert(e.message));
+    }
 
-
-    // lexo realtime
     function loadTasks(type,listId){
       const div=document.getElementById(listId);
       onValue(ref(db,`${type}/${currentUser.uid}`),snap=>{
@@ -174,13 +219,22 @@
       });
     }
 
-    // fshi
     window.deleteTask=function(type,key){
       remove(ref(db,`${type}/${currentUser.uid}/${key}`));
     }
 
-    // logout
     document.getElementById("logoutBtn").addEventListener("click",()=>{signOut(auth).then(()=>window.location.href="index.html")});
+
+    // ================= BURGER MENU =================
+    const hamburger = document.getElementById('hamburger');
+    const sidebar = document.getElementById('sidebar');
+
+    hamburger.addEventListener('click', () => {
+      sidebar.classList.toggle('active');
+      hamburger.classList.toggle('active');
+    });
   </script>
 </body>
 </html>
+
+
